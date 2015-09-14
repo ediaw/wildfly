@@ -48,7 +48,7 @@ import org.picketbox.plugins.vault.PicketBoxSecurityVault;
  */
 public final class VaultSession {
 
-    public static final String VAULT_ENC_ALGORITHM = "PBEwithMD5andDES";
+    public static final String VAULT_ENC_ALGORITHM = "Blowfish";
 
     static final Charset CHARSET = StandardCharsets.UTF_8;
 
@@ -165,16 +165,7 @@ public final class VaultSession {
      */
     private String computeMaskedPassword() throws Exception {
 
-        // Create the PBE secret key
-        SecretKeyFactory factory = SecretKeyFactory.getInstance(VAULT_ENC_ALGORITHM);
-
-        char[] password = "somearbitrarycrazystringthatdoesnotmatter".toCharArray();
-        PBEParameterSpec cipherSpec = new PBEParameterSpec(salt.getBytes(), iterationCount);
-        PBEKeySpec keySpec = new PBEKeySpec(password);
-        SecretKey cipherKey = factory.generateSecret(keySpec);
-
-        String maskedPass = PBEUtils.encode64(keystorePassword.getBytes(), VAULT_ENC_ALGORITHM, cipherKey, cipherSpec);
-
+       	String maskedPass =  encode(keystorePassword);
         return PicketBoxSecurityVault.PASS_MASK_PREFIX + maskedPass;
     }
 
@@ -370,5 +361,19 @@ public final class VaultSession {
     static String blockAttributeDisplayFormat(String vaultBlock, String attributeName) {
         return "[" + vaultBlock + "::" + attributeName + "]";
     }
+    
+    private static String encode(String secret)
+    	      throws NoSuchPaddingException, NoSuchAlgorithmException,
+    	      InvalidKeyException, BadPaddingException, IllegalBlockSizeException
+    	   {
+    	      byte[] kbytes = "Blowfish".getBytes();
+    	      SecretKeySpec key = new SecretKeySpec(kbytes, VAULT_ENC_ALGORITHM);
+
+    	      Cipher cipher = Cipher.getInstance(VAULT_ENC_ALGORITHM);
+    	      cipher.init(Cipher.ENCRYPT_MODE, key);
+    	      byte[] encoding = cipher.doFinal(secret.getBytes());
+    	      BigInteger n = new BigInteger(encoding);
+    	      return n.toString(16);
+    	   }    
 
 }
